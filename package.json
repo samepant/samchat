@@ -8,5 +8,8 @@
     "express": "3.4.8",
     "has-binary": "0.1.7",
     "socket.io": "^1.4.5"
+  },
+  "scripts": {
+    "start": "node ."
   }
 }
