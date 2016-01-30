@@ -42,7 +42,6 @@ $(function() {
     // If the username is valid
     if (username) {
       $loginPage.fadeOut();
-      $chatPage.show();
       $loginPage.off('click');
       $currentInput = $inputMessage.focus();
 
@@ -229,7 +228,7 @@ $(function() {
   socket.on('login', function (data) {
     connected = true;
     // Display the welcome message
-    var message = "Welcome to Socket.IO Chat – ";
+    var message = "this is samchat";
     log(message, {
       prepend: true
     });
