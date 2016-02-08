@@ -8,6 +8,7 @@ cfg.accountSid = privateData.twilioKeys.accountSid;
 cfg.authToken = privateData.twilioKeys.accountAuthToken;
 cfg.sendingNumber = privateData.twilioKeys.phoneNumber;
 cfg.receiveNumber = privateData.samPhone;
+cfg.passwordForSam = privateData.passwordForSam;
 
 
 var requiredConfig = [cfg.accountSid, cfg.authToken, cfg.sendingNumber];

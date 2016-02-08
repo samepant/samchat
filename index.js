@@ -4,6 +4,8 @@ var app = express();
 var server = require('http').createServer(app);
 var io = require('socket.io')(server);
 var port = process.env.PORT || 3000;
+var sms = require('./sendsms.js');
+var config = require('./config');
 
 server.listen(port, function () {
   console.log('Server listening at port %d', port);
@@ -15,6 +17,8 @@ app.use(express.static(__dirname + '/public'));
 // Chatroom
 
 var numUsers = 0;
+var samLoggedIn = false;
+var passwordForSam = config.passwordForSam;
 
 io.on('connection', function (socket) {
   var addedUser = false;
@@ -22,15 +26,25 @@ io.on('connection', function (socket) {
   // when the client emits 'new message', this listens and executes
   socket.on('new message', function (data) {
     // we tell the client to execute 'new message'
+    
     socket.broadcast.emit('new message', {
       username: socket.username,
       message: data
     });
+    if (!samLoggedIn) {
+      sms.sendSamAlert(socket.username, data);
+    }
   });
 
   // when the client emits 'add user', this listens and executes
   socket.on('add user', function (username) {
     if (addedUser) return;
+
+    //login as sam if the password was used
+    if (username === passwordForSam) {
+      username = 'sam';
+      samLoggedIn = true;
+    }
 
     // we store the username in the socket session for this client
     socket.username = username;
@@ -44,6 +58,9 @@ io.on('connection', function (socket) {
       username: socket.username,
       numUsers: numUsers
     });
+    if (!samLoggedIn) {
+      sms.sendSamAlert(socket.username);
+    }
   });
 
   // when the client emits 'typing', we broadcast it to others
@@ -70,6 +87,10 @@ io.on('connection', function (socket) {
         username: socket.username,
         numUsers: numUsers
       });
+
+      if (socket.username === 'sam') {
+        samLoggedIn = false;
+      }
     }
   });
 });

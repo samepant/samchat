@@ -15,6 +15,7 @@ $(function() {
 
   var $loginPage = $('.login.page'); // The login page
   var $chatPage = $('.chat.page'); // The chatroom page
+  var $badNameMessage = $('.username-taken'); //message for when they try to choose sam or Sam
 
   // Prompt for setting a username
   var username;
@@ -37,16 +38,19 @@ $(function() {
 
   // Sets the client's username
   function setUsername () {
-    username = cleanInput($usernameInput.val().trim());
-
+    var checkUsername = cleanInput($usernameInput.val().trim());
+    
     // If the username is valid
-    if (username) {
+    if (checkUsername && checkUsername !== 'sam' && checkUsername !== 'Sam') {
+      username = checkUsername;
       $loginPage.fadeOut();
       $loginPage.off('click');
       $currentInput = $inputMessage.focus();
 
       // Tell the server your username
       socket.emit('add user', username);
+    } else {
+      $badNameMessage.fadeIn();
     }
   }
 
