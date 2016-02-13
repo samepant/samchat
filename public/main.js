@@ -16,6 +16,8 @@ $(function() {
   var $loginPage = $('.login.page'); // The login page
   var $chatPage = $('.chat.page'); // The chatroom page
   var $badNameMessage = $('.username-taken'); //message for when they try to choose sam or Sam
+  var $showOlder = $('#show-older'); //show older messages
+  var $gettingOlder = $('#getting-older'); //getting older messages indicator
 
   // Prompt for setting a username
   var username;
@@ -62,12 +64,14 @@ $(function() {
     // if there is a non-empty message and a socket connection
     if (message && connected) {
       $inputMessage.val('');
+      var createdTime = new Date();
       addChatMessage({
         username: username,
-        message: message
+        message: message,
+        created: createdTime
       });
       // tell server to execute 'new message' and send along one parameter
-      socket.emit('new message', message);
+      socket.emit('new message', {message: message, created: createdTime});
     }
   }
 
@@ -86,18 +90,19 @@ $(function() {
       options.fade = false;
       $typingMessages.remove();
     }
-
-    var $usernameDiv = $('<span class="username"/>')
+    var $timeOfMessage = $('<div class="message-time">')
+      .text(moment(data.created).format('MM/DD/YYYY H:mm'));
+    var $usernameDiv = $('<div class="username"/>')
       .text(data.username)
       .css('color', getUsernameColor(data.username));
-    var $messageBodyDiv = $('<span class="messageBody">')
+    var $messageBodyDiv = $('<div class="messageBody">')
       .text(data.message);
 
     var typingClass = data.typing ? 'typing' : '';
     var $messageDiv = $('<li class="message"/>')
       .data('username', data.username)
       .addClass(typingClass)
-      .append($usernameDiv, $messageBodyDiv);
+      .append($timeOfMessage, $usernameDiv, $messageBodyDiv);
 
     addMessageElement($messageDiv, options);
   }
@@ -191,6 +196,22 @@ $(function() {
     return COLORS[index];
   }
 
+  //Gets older messages and prepends them as well as a loding indicator
+  function getOlderMessages () {
+    $showOlder.hide();
+    $gettingOlder.fadeIn();
+
+    //get timestamp from earliest message if one exists
+    if ($('.messages .message').first().children('.message-time').length > 0) {
+      var existingTimeStamp = $('.messages .message').first().children('.message-time').text();
+      var timeStamp = moment(existingTimeStamp, 'MM/DD/YYYY H:mm')
+    } else {
+      var timeStamp = moment();
+    }
+
+    socket.emit('wantsOlderMessages', timeStamp);
+  }
+
   // Keyboard events
 
   $window.keydown(function (event) {
@@ -226,7 +247,27 @@ $(function() {
     $inputMessage.focus();
   });
 
+  // Get older messages and show loading indicator
+  $showOlder.click(function () {
+    getOlderMessages();
+  });
+
   // Socket events
+
+  // adds old messages to the top of the chat
+  socket.on('getsOlderMessages', function (data) {
+    for (var i = 0; i < data.length; i++) {
+      var messageToAdd = data[i];
+
+      addChatMessage(messageToAdd, {prepend: true});
+    }
+    if (data.length === 0) {
+      $gettingOlder.hide();
+    } else {
+      $gettingOlder.hide();
+      $showOlder.fadeIn();
+    }  
+  });
 
   // Whenever the server emits 'login', log the login message
   socket.on('login', function (data) {

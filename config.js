@@ -10,6 +10,12 @@ cfg.sendingNumber = privateData.twilioKeys.phoneNumber;
 cfg.receiveNumber = privateData.samPhone;
 cfg.passwordForSam = privateData.passwordForSam;
 
+if (process.env.env === 'prod') {
+  cfg.mongoURI = privateData.mongoURI;
+} else {
+  cfg.mongoURI = 'mongodb://127.0.0.1:27017/sam-chat';
+}
+
 
 var requiredConfig = [cfg.accountSid, cfg.authToken, cfg.sendingNumber];
 var isConfigured = requiredConfig.every(function(configValue) {

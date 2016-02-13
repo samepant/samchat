@@ -6,6 +6,18 @@ var io = require('socket.io')(server);
 var port = process.env.PORT || 3000;
 var sms = require('./sendsms.js');
 var config = require('./config');
+var mongoose = require('mongoose');
+var Message = require('./messageModel.js');
+var moment = require('moment-timezone');
+
+//connect to mongoose
+mongoose.connect(config.mongoURI, function(err) {
+  if(err) {
+      console.log('connection error', err);
+  } else {
+      console.log('connection successful');   
+  }
+});
 
 server.listen(port, function () {
   console.log('Server listening at port %d', port);
@@ -25,15 +37,29 @@ io.on('connection', function (socket) {
 
   // when the client emits 'new message', this listens and executes
   socket.on('new message', function (data) {
-    // we tell the client to execute 'new message'
-    
-    socket.broadcast.emit('new message', {
+
+    // save message to database and send to everyone
+    var newMessage = new Message( {
       username: socket.username,
-      message: data
+      message: data.message,
+      created: data.created
     });
-    if (!samLoggedIn) {
-      sms.sendSamAlert(socket.username, data);
-    }
+
+    newMessage.save(function (err, msg) {
+      if (err) {
+        console.log(err);
+      } else {
+        var formattedTime = moment(data.created);
+        socket.broadcast.emit('new message', {
+          username: socket.username,
+          message: data.message,
+          created: formattedTime.tz('America/Los_Angeles').format()
+        });
+        if (!samLoggedIn) {
+          sms.sendSamAlert(socket.username, data);
+        } 
+      }
+    });
   });
 
   // when the client emits 'add user', this listens and executes
@@ -74,6 +100,20 @@ io.on('connection', function (socket) {
   socket.on('stop typing', function () {
     socket.broadcast.emit('stop typing', {
       username: socket.username
+    });
+  });
+
+  // when the client wants older messages 
+  socket.on('wantsOlderMessages', function(timeStamp) {
+    var eldestTime = timeStamp;
+    
+    //search database for messages older than the input timestamp
+    Message.find({created: {$lt: new Date(eldestTime)}}).sort('-created').exec(function (err, messages) {
+      if (err) {
+        console.log(err);
+      } else {
+        socket.emit('getsOlderMessages', messages);
+      }
     });
   });
 
