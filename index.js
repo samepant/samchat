@@ -42,7 +42,8 @@ io.on('connection', function (socket) {
     var newMessage = new Message( {
       username: socket.username,
       message: data.message,
-      created: data.created
+      created: data.created,
+      isLog: false
     });
 
     newMessage.save(function (err, msg) {
@@ -79,14 +80,32 @@ io.on('connection', function (socket) {
     socket.emit('login', {
       numUsers: numUsers
     });
-    // echo globally (all clients) that a person has connected
-    socket.broadcast.emit('user joined', {
+
+
+    // save message to database and send to everyone
+    var logMessage = socket.username + ' joined';
+    var newMessage = new Message( {
       username: socket.username,
-      numUsers: numUsers
+      message: logMessage,
+      created: new Date(),
+      isLog: true
     });
-    if (!samLoggedIn) {
-      sms.sendSamAlert(socket.username);
-    }
+
+    newMessage.save(function (err, msg) {
+      if (err) {
+        console.log(err);
+      } else {
+
+        // echo globally (all clients) that a person has connected
+        socket.broadcast.emit('user joined', {
+          username: socket.username,
+          numUsers: numUsers
+        });
+        if (!samLoggedIn) {
+          sms.sendSamAlert(socket.username);
+        } 
+      }
+    });
   });
 
   // when the client emits 'typing', we broadcast it to others
@@ -122,15 +141,31 @@ io.on('connection', function (socket) {
     if (addedUser) {
       --numUsers;
 
-      // echo globally that this client has left
-      socket.broadcast.emit('user left', {
+      // save message to database and send to everyone
+      var logMessage = socket.username + ' left';
+      var newMessage = new Message( {
         username: socket.username,
-        numUsers: numUsers
+        message: logMessage,
+        created: new Date(),
+        isLog: true
       });
 
-      if (socket.username === 'sam') {
-        samLoggedIn = false;
-      }
+      newMessage.save(function (err, msg) {
+        if (err) {
+          console.log(err);
+        } else {
+
+          // echo globally that this client has left
+          socket.broadcast.emit('user left', {
+            username: socket.username,
+            numUsers: numUsers
+          });
+
+          if (socket.username === 'sam') {
+            samLoggedIn = false;
+          }
+        }
+      });
     }
   });
 });

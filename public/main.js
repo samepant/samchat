@@ -259,8 +259,13 @@ $(function() {
     for (var i = 0; i < data.length; i++) {
       var messageToAdd = data[i];
 
-      addChatMessage(messageToAdd, {prepend: true});
+      if (messageToAdd.isLog) {
+        log(messageToAdd.message, {prepend: true});
+      } else {
+        addChatMessage(messageToAdd, {prepend: true});
+      }
     }
+
     if (data.length === 0) {
       $gettingOlder.hide();
     } else {
